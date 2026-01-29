@@ -27,9 +27,8 @@ const StatsSection = () => {
   return (
     <Box
       sx={{
-        backgroundColor: "#7973c430", 
-        borderTop: "1px solid #f1f5f9",
-        borderBottom: "1px solid #f1f5f9",
+        backgroundColor: "#f5f7ff",
+        
         py: { xs: 4, md: 6 },
       }}
     >

@@ -51,7 +51,7 @@ const LearningPaths = () => {
       py={12}
       px={{ xs: 2, md: 8 }}
       sx={{
-        backgroundColor: "#f5f7ff", // 👈 focused soft background
+        backgroundColor: "#f5f7ff", 
       }}
     >
       {/* Heading */}

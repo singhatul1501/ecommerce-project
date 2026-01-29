@@ -43,7 +43,13 @@ const FAQSection = () => {
   };
 
   return (
-    <Box py={10} sx={{ backgroundColor: "#f8fafc" }}>
+     <Box
+            sx={{
+                width: "100%",
+                background: "linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)",
+                py: { xs: 8, md: 12 },
+            }}
+        >
       {/* HEADER */}
       <Box textAlign="center" mb={6}>
         <Typography fontSize={34} fontWeight={800}>

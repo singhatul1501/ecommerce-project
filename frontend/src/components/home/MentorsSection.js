@@ -29,7 +29,7 @@ const mentors = [
 
 const MentorsSection = () => {
   return (
-    <Box py={12} px={{ xs: 2, md: 8 }} bgcolor="#f7f7ff">
+    <Box py={12} px={{ xs: 2, md: 8 }} bgcolor="#f5f7ff">
       {/* Heading */}
       <Box textAlign="center" mb={8}>
         <Typography fontSize={34} fontWeight={800} color="#0f172a">

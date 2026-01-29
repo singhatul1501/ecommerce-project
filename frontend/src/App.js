@@ -1,34 +1,30 @@
 import { Routes, Route } from "react-router-dom";
-import { ThemeProvider, CssBaseline, createTheme } from "@mui/material";
-import Navbar from "./components/layout/Navbar";
+import { Box } from "@mui/material";
+import Navbar, { NAVBAR_HEIGHT } from "./components/layout/Navbar";
+import CourseDetails from "./pages/CourseDetails";
+
 import Home from "./pages/Home";
+import Courses from "./pages/Courses";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
-const theme = createTheme({
-  palette: {
-    mode: "light", // change to "dark" if needed
-    primary: {
-      main: "#1976d2",
-    },
-  },
-});
-
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
+    <>
       <Navbar />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-    </ThemeProvider>
+      {/* Spacer to push content below fixed navbar */}
+      <Box sx={{ mt: `${NAVBAR_HEIGHT}px` }}>
+        <Routes>
+          <Route path="/courses/:id" element={<CourseDetails />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/courses" element={<Courses />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </Box>
+    </>
   );
 }
 
 export default App;
-

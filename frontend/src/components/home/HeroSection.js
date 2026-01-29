@@ -16,7 +16,7 @@ const HeroSection = () => {
         <Box
             sx={{
                 width: "100%",
-                background: "linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)",
+                background: "linear-gradient( #ffffff 100%)",
                 py: { xs: 8, md: 12 },
             }}
         >
@@ -104,7 +104,8 @@ const HeroSection = () => {
                                         borderRadius: 3,
                                         fontWeight: 600,
                                         textTransform: "none",
-                                        background: "linear-gradient(90deg,#5f5cff,#8a2cff)",
+                                        background:
+                                            "linear-gradient(135deg,#2563eb,#9333ea)",
                                     }}
                                 >
                                     Browse Courses →

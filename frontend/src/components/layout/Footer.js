@@ -151,18 +151,29 @@ const Footer = () => {
       <Grid container spacing={4}>
         <Grid item xs={12} md={4} display="flex" gap={2}>
           <EmailIcon color="primary" />
-          <Typography>support@smartlearnx.com</Typography>
+          <Typography>Support@smartlearnx.com</Typography>
         </Grid>
 
         <Grid item xs={12} md={4} display="flex" gap={2}>
           <PhoneIcon color="primary" />
-          <Typography>+1 (555) 123-4567</Typography>
+          <Typography
+            sx={{
+              cursor: "pointer",
+              "&:hover": { color: "primary.main" },
+            }}
+            onClick={() => {
+              navigator.clipboard.writeText("+91 7376555568");
+            }}
+          >
+            +91 7376555568
+          </Typography>
+
         </Grid>
 
         <Grid item xs={12} md={4} display="flex" gap={2}>
           <LocationOnIcon color="primary" />
           <Typography>
-            123 Education St, Learning City
+            Laxamanpur, Varanasi, India - 221002
           </Typography>
         </Grid>
       </Grid>
