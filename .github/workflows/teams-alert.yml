@@ -1,15 +1,62 @@
-name: Teams Notification
+name: Frontend Jest + Teams Alert
 
 on:
   push:
-  pull_request:
 
 jobs:
-  notify:
+  test-and-notify:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Send message to Teams
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Run Jest tests
+        id: jest
+        run: |
+          set +e
+          npm test -- --watchAll=false 2>&1 | tee jest-output.txt
+          test_exit_code=${PIPESTATUS[0]}
+
+          suites_line=$(grep -E "^Test Suites:" jest-output.txt | tail -1)
+          tests_line=$(grep -E "^Tests:" jest-output.txt | tail -1)
+          time_line=$(grep -E "^Time:" jest-output.txt | tail -1)
+
+          echo "exit_code=$test_exit_code" >> "$GITHUB_OUTPUT"
+          echo "suites_line=${suites_line:-Test Suites: unavailable}" >> "$GITHUB_OUTPUT"
+          echo "tests_line=${tests_line:-Tests: unavailable}" >> "$GITHUB_OUTPUT"
+          echo "time_line=${time_line:-Time: unavailable}" >> "$GITHUB_OUTPUT"
+
+          exit 0
+        working-directory: frontend
+        env:
+          CI: true
+
+      - name: Send Teams report on success
+        if: ${{ steps.jest.outputs.exit_code == '0' }}
         run: |
           curl -X POST "${{ secrets.TEAMS_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
-          -d "{\"text\": \"🚀 Repo: ${{ github.repository }} | Event: ${{ github.event_name }} | By: ${{ github.actor }}\"}"
+          -d "{\"text\":\"✅ Jest Passed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+
+      - name: Send Teams report on failure
+        if: ${{ steps.jest.outputs.exit_code != '0' }}
+        run: |
+          curl -X POST "${{ secrets.TEAMS_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d "{\"text\":\"❌ Jest Failed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+
+      - name: Fail workflow when tests fail
+        if: ${{ steps.jest.outputs.exit_code != '0' }}
+        run: exit 1
