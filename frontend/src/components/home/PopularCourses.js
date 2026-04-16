@@ -21,7 +21,7 @@ const PopularCourses = () => {
             <Grid item xs={12} md={4} key={course.id}>
               <Box
                 sx={{
-                  p: 2,
+                  p: 1,
                   borderRadius: 3,
                   backgroundColor: "#fff",
                   boxShadow: "0 8px 24px rgba(0,0,0,0.08)",

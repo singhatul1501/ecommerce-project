@@ -10,7 +10,6 @@ import {
     RadioGroup,
     Radio,
     Slider,
-    Stack,
 } from "@mui/material";
 
 /* ================= CURRENCY UTILS ================= */
@@ -105,67 +104,70 @@ export const courseList = [
 
 /* ================= FILTER SIDEBAR ================= */
 const Filters = () => (
-    <Box
-        sx={{
-            width: 280,
-            backgroundColor: "#fff",
-            borderRadius: 3,
-            p: 3,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-            position: "sticky",
-            top: 100,
-            height: "fit-content",
-        }}
-    >
-        <Typography fontWeight={700}>Filters</Typography>
-        <Typography fontSize={14} color="text.secondary" mb={3}>
-            Refine your learning path
-        </Typography>
-
-        <Typography fontSize={12} fontWeight={700} mb={1}>
-            CATEGORIES
-        </Typography>
-        {["Development", "Design", "Business", "Data Science"].map((c) => (
-            <FormControlLabel
-                key={c}
-                control={<Checkbox />}
-                label={c}
-            />
-        ))}
-
-        <Typography fontSize={12} fontWeight={700} mt={3} mb={1}>
-            DIFFICULTY
-        </Typography>
-        <RadioGroup>
-            {["Beginner", "Intermediate", "Expert"].map((d) => (
-                <FormControlLabel
-                    key={d}
-                    value={d}
-                    control={<Radio />}
-                    label={d}
-                />
-            ))}
-        </RadioGroup>
-
-        <Typography fontSize={12} fontWeight={700} mt={3} mb={1}>
-            PRICE RANGE
-        </Typography>
-        <Slider />
-
-        <Button
-            fullWidth
-            variant="contained"
+    <Grid item xs={12} md={4} lg={3}>
+        <Box
             sx={{
-                mt: 3,
+
+                width: 350,
+                backgroundColor: "#fff",
                 borderRadius: 3,
-                py: 1.2,
-                fontWeight: 700,
-                background: "linear-gradient(135deg,#2563eb,#9333ea)",
+                p: 3,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                position: "sticky",
+                top: 100,
+                height: "fit-content",
             }}
         >
-            Apply Filters
-        </Button>
-    </Box>
+            <Typography fontWeight={700}>Filters</Typography>
+            <Typography fontSize={14} color="text.secondary" mb={3}>
+                Refine your learning path
+            </Typography>
+
+            <Typography fontSize={12} fontWeight={700} mb={1}>
+                CATEGORIES
+            </Typography>
+            {["Development", "Design", "Business", "Data Science"].map((c) => (
+                <FormControlLabel
+                    key={c}
+                    control={<Checkbox />}
+                    label={c}
+                />
+            ))}
+
+            <Typography fontSize={12} fontWeight={700} mt={3} mb={1}>
+                DIFFICULTY
+            </Typography>
+            <RadioGroup>
+                {["Beginner", "Intermediate", "Expert"].map((d) => (
+                    <FormControlLabel
+                        key={d}
+                        value={d}
+                        control={<Radio />}
+                        label={d}
+                    />
+                ))}
+            </RadioGroup>
+
+            <Typography fontSize={12} fontWeight={700} mt={3} mb={1}>
+                PRICE RANGE
+            </Typography>
+            <Slider />
+
+            <Button
+                fullWidth
+                variant="contained"
+                sx={{
+                    mt: 3,
+                    borderRadius: 3,
+                    py: 1.2,
+                    fontWeight: 700,
+                    background: "linear-gradient(135deg,#2563eb,#9333ea)",
+                }}
+            >
+                Apply Filters
+            </Button>
+        </Box>
+    </Grid>
 );
 
 /* ================= COURSE CARD ================= */
@@ -270,7 +272,7 @@ const Courses = () => {
             <Box
                 sx={{
                     maxWidth: "1440px",
-                    mx: "auto",
+
                     px: 3,
                     py: 4,
                     display: "flex",
@@ -297,11 +299,6 @@ const Courses = () => {
                         Discover 1,200+ specialized courses curated for modern professionals.
                     </Typography>
 
-                    <Stack direction="row" spacing={1} mb={4}>
-                        <Chip label="Python" />
-                        <Chip label="Web Development" />
-                        <Chip label="Beginner" />
-                    </Stack>
 
                     <Grid container spacing={4}>
                         {courseList.map((course) => (

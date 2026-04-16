@@ -23,7 +23,6 @@ const HeroSection = () => {
             <Box maxWidth="1200px" mx="auto" px={{ xs: 2, md: 4 }}>
                 <Grid container spacing={6} alignItems="stretch">
 
-                    {/* LEFT CONTENT */}
                     <Grid item xs={12} md={6}>
                         <Box
                             sx={{
@@ -149,7 +148,7 @@ const HeroSection = () => {
                         >
                             <Box
                                 sx={{
-                                    position: "relative",     // 🔒 REQUIRED FOR BADGE
+                                    position: "relative",  
                                     width: "100%",
                                     maxWidth: 520,
                                     height: 420,
