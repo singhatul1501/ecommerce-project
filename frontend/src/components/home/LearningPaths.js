@@ -70,7 +70,7 @@ const LearningPaths = () => {
 
       {/* Cards */}
       <Box maxWidth={1200} mx="auto">
-        <Grid container spacing={4} justifyContent="center">
+        <Grid container spacing={4} justifyContent="center"  alignItems="stretch">
           {learningPaths.map((path, index) => (
             <Grid item xs={12} md={6} key={index}>
               <Paper

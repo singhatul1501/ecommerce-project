@@ -23,6 +23,11 @@ function App() {
           <Route path="/register" element={<Register />} />
         </Routes>
       </Box>
+      
+      <Routes>
+        <Route path="/home" element={<Home />} />
+      </Routes>
+   
     </>
   );
 }
