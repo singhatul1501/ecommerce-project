@@ -36,11 +36,19 @@ jobs:
           suites_line=$(grep -E "^Test Suites:" jest-output.txt | tail -1)
           tests_line=$(grep -E "^Tests:" jest-output.txt | tail -1)
           time_line=$(grep -E "^Time:" jest-output.txt | tail -1)
+          raw_failure_lines=$(grep -E "^(FAIL|  ● )" jest-output.txt | head -n 8)
+          if [ -z "$raw_failure_lines" ]; then
+            raw_failure_lines="No individual failing test lines found."
+          fi
+          failure_details=$(printf '%s' "$raw_failure_lines" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "exit_code=$test_exit_code" >> "$GITHUB_OUTPUT"
           echo "suites_line=${suites_line:-Test Suites: unavailable}" >> "$GITHUB_OUTPUT"
           echo "tests_line=${tests_line:-Tests: unavailable}" >> "$GITHUB_OUTPUT"
           echo "time_line=${time_line:-Time: unavailable}" >> "$GITHUB_OUTPUT"
+          echo "failure_details=$failure_details" >> "$GITHUB_OUTPUT"
+          echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
 
           exit 0
         working-directory: frontend
@@ -63,7 +71,7 @@ jobs:
             exit 0
           fi
 
-          payload="{\"text\":\"✅ Jest Passed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+          payload="{\"text\":\"✅ Jest Passed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\\nRun: ${{ steps.jest.outputs.run_url }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
@@ -85,7 +93,7 @@ jobs:
             exit 0
           fi
 
-          payload="{\"text\":\"❌ Jest Failed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+          payload="{\"text\":\"❌ Jest Failed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\\nFail Details: ${{ steps.jest.outputs.failure_details }}\\nRun: ${{ steps.jest.outputs.run_url }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
