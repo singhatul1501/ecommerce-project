@@ -1,0 +1,18 @@
+name: Teams Notification
+
+on:
+  push:
+  pull_request:
+  workflow_run:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send message to Teams
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d '{
+            "text": "🚀 Repo: ${{ github.repository }} | Event: ${{ github.event_name }} | By: ${{ github.actor }}"
+          }' \
+          ${{ secrets.TEAMS_WEBHOOK_URL }}
