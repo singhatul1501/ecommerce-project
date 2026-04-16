@@ -9,8 +9,29 @@ env:
   NOTIFY_BRANCHES: "main"
   INCLUDE_FAILED_TEST_NAMES: "true"
   INCLUDE_RUN_URL: "true"
-  SUCCESS_MESSAGE_TEMPLATE: "✅ Jest Passed | Event: {{event}} | Repository: {{repo}} | Branch: {{branch}} | Actor: {{actor}} | Commit: {{commit}} | {{suites}} | {{tests}} | {{time}} | Changed Files Check: {{related}}"
-  FAILURE_MESSAGE_TEMPLATE: "❌ Jest Failed | Event: {{event}} | Repository: {{repo}} | Branch: {{branch}} | Actor: {{actor}} | Commit: {{commit}} | {{suites}} | {{tests}} | {{time}} | Changed Files Check: {{related}} | Failure Details: {{failure_details}}"
+  SUCCESS_MESSAGE_TEMPLATE: |
+    ✅ Jest Passed
+    Event: {{event}}
+    Repository: {{repo}}
+    Branch: {{branch}}
+    Actor: {{actor}}
+    Commit: {{commit}}
+    {{suites}}
+    {{tests}}
+    {{time}}
+    Changed Files Check: {{related}}
+  FAILURE_MESSAGE_TEMPLATE: |
+    ❌ Jest Failed
+    Event: {{event}}
+    Repository: {{repo}}
+    Branch: {{branch}}
+    Actor: {{actor}}
+    Commit: {{commit}}
+    {{suites}}
+    {{tests}}
+    {{time}}
+    Changed Files Check: {{related}}
+    Failure Details: {{failure_details}}
 
 jobs:
   test-and-notify:
@@ -178,7 +199,8 @@ jobs:
           fi
 
           if [ "$INCLUDE_RUN_URL" = "true" ]; then
-            message="$message | Run: $run_url"
+            message="$message
+    Run: $run_url"
           fi
 
           payload=$(printf '{"text":"%s"}' "$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g')")
