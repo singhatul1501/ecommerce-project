@@ -23,24 +23,54 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
-        run: npm ci
+        id: deps
+        run: |
+          set +e
+          npm ci --no-audit --no-fund
+          ci_exit_code=$?
+
+          if [ "$ci_exit_code" -ne 0 ]; then
+            echo "npm ci failed, trying npm install fallback"
+            npm install --no-audit --no-fund
+            install_exit_code=$?
+          else
+            install_exit_code=0
+          fi
+
+          echo "exit_code=$install_exit_code" >> "$GITHUB_OUTPUT"
+          if [ "$install_exit_code" -eq 0 ]; then
+            echo "status=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
         working-directory: frontend
 
       - name: Run Jest tests
         id: jest
         run: |
           set +e
-          npm test -- --watchAll=false 2>&1 | tee jest-output.txt
-          test_exit_code=${PIPESTATUS[0]}
+          if [ "${{ steps.deps.outputs.status }}" != "ok" ]; then
+            test_exit_code=1
+            suites_line="Test Suites: unavailable (dependency install failed)"
+            tests_line="Tests: unavailable (dependency install failed)"
+            time_line="Time: unavailable"
+            failure_details="Dependency install failed before tests."
+          else
+            npm test -- --watchAll=false 2>&1 | tee jest-output.txt
+            test_exit_code=${PIPESTATUS[0]}
 
-          suites_line=$(grep -E "^Test Suites:" jest-output.txt | tail -1)
-          tests_line=$(grep -E "^Tests:" jest-output.txt | tail -1)
-          time_line=$(grep -E "^Time:" jest-output.txt | tail -1)
-          raw_failure_lines=$(grep -E "^(FAIL|  ● )" jest-output.txt | head -n 8)
-          if [ -z "$raw_failure_lines" ]; then
-            raw_failure_lines="No individual failing test lines found."
+            suites_line=$(grep -E "^Test Suites:" jest-output.txt | tail -1)
+            tests_line=$(grep -E "^Tests:" jest-output.txt | tail -1)
+            time_line=$(grep -E "^Time:" jest-output.txt | tail -1)
+            raw_failure_lines=$(grep -E "^(FAIL|  ● )" jest-output.txt | head -n 8)
+            if [ -z "$raw_failure_lines" ]; then
+              raw_failure_lines="No individual failing test lines found."
+            fi
+            failure_details=$(printf '%s' "$raw_failure_lines" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
           fi
-          failure_details=$(printf '%s' "$raw_failure_lines" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
+
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "exit_code=$test_exit_code" >> "$GITHUB_OUTPUT"
