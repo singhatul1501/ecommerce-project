@@ -2,9 +2,21 @@ name: Frontend Jest + Teams Alert
 
 on:
   push:
+    branches:
+      - main
+      - Atul
   pull_request:
     types:
       - closed
+    branches:
+      - main
+      - Atul
+
+env:
+  INCLUDE_FAILED_TEST_NAMES: "true"
+  INCLUDE_RUN_URL: "true"
+  SUCCESS_MESSAGE_TEMPLATE: "✅ Jest Passed | Event: {{event}} | Repository: {{repo}} | Branch: {{branch}} | Actor: {{actor}} | Commit: {{commit}} | {{suites}} | {{tests}} | {{time}} | Changed Files Check: {{related}}"
+  FAILURE_MESSAGE_TEMPLATE: "❌ Jest Failed | Event: {{event}} | Repository: {{repo}} | Branch: {{branch}} | Actor: {{actor}} | Commit: {{commit}} | {{suites}} | {{tests}} | {{time}} | Changed Files Check: {{related}} | Failure Details: {{failure_details}}"
 
 jobs:
   test-and-notify:
@@ -14,6 +26,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -21,6 +35,29 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Detect changed frontend source files
+        id: changes
+        run: |
+          set +e
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          fi
+
+          changed_files=$(git diff --name-only "$base_sha" "$head_sha" | grep -E '^frontend/src/.*\.(js|jsx|ts|tsx)$' || true)
+          one_line_files=$(printf '%s' "$changed_files" | tr '\n' ' ' | xargs)
+
+          if [ -n "$one_line_files" ]; then
+            echo "has_changed_files=true" >> "$GITHUB_OUTPUT"
+            echo "changed_files=$one_line_files" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changed_files=false" >> "$GITHUB_OUTPUT"
+            echo "changed_files=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install frontend dependencies
         id: deps
@@ -37,29 +74,47 @@ jobs:
             install_exit_code=0
           fi
 
-          echo "exit_code=$install_exit_code" >> "$GITHUB_OUTPUT"
           if [ "$install_exit_code" -eq 0 ]; then
             echo "status=ok" >> "$GITHUB_OUTPUT"
           else
             echo "status=failed" >> "$GITHUB_OUTPUT"
           fi
-
           exit 0
         working-directory: frontend
 
-      - name: Run Jest tests
+      - name: Run changed-files and full regression Jest tests
         id: jest
         run: |
           set +e
+          overall_exit_code=0
+          related_summary="Not run"
+
           if [ "${{ steps.deps.outputs.status }}" != "ok" ]; then
-            test_exit_code=1
+            overall_exit_code=1
             suites_line="Test Suites: unavailable (dependency install failed)"
             tests_line="Tests: unavailable (dependency install failed)"
             time_line="Time: unavailable"
             failure_details="Dependency install failed before tests."
+            related_summary="Skipped (dependency install failed)"
           else
+            if [ "${{ steps.changes.outputs.has_changed_files }}" = "true" ]; then
+              npm test -- --watchAll=false --findRelatedTests ${{ steps.changes.outputs.changed_files }} 2>&1 | tee related-output.txt
+              related_exit_code=${PIPESTATUS[0]}
+              if [ "$related_exit_code" -eq 0 ]; then
+                related_summary="Passed"
+              else
+                related_summary="Failed"
+                overall_exit_code=1
+              fi
+            else
+              related_summary="Skipped (no frontend source changes)"
+            fi
+
             npm test -- --watchAll=false 2>&1 | tee jest-output.txt
-            test_exit_code=${PIPESTATUS[0]}
+            full_exit_code=${PIPESTATUS[0]}
+            if [ "$full_exit_code" -ne 0 ]; then
+              overall_exit_code=1
+            fi
 
             suites_line=$(grep -E "^Test Suites:" jest-output.txt | tail -1)
             tests_line=$(grep -E "^Tests:" jest-output.txt | tail -1)
@@ -73,20 +128,19 @@ jobs:
 
           run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          echo "exit_code=$test_exit_code" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$overall_exit_code" >> "$GITHUB_OUTPUT"
           echo "suites_line=${suites_line:-Test Suites: unavailable}" >> "$GITHUB_OUTPUT"
           echo "tests_line=${tests_line:-Tests: unavailable}" >> "$GITHUB_OUTPUT"
           echo "time_line=${time_line:-Time: unavailable}" >> "$GITHUB_OUTPUT"
           echo "failure_details=$failure_details" >> "$GITHUB_OUTPUT"
           echo "run_url=$run_url" >> "$GITHUB_OUTPUT"
-
+          echo "related_summary=$related_summary" >> "$GITHUB_OUTPUT"
           exit 0
         working-directory: frontend
         env:
           CI: true
 
-      - name: Send Teams report on success
-        if: ${{ steps.jest.outputs.exit_code == '0' }}
+      - name: Send Teams report
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
           TEAMS_WEBHOOK_URI: ${{ secrets.TEAMS_WEBHOOK_URI }}
@@ -101,34 +155,46 @@ jobs:
             exit 0
           fi
 
-          payload="{\"text\":\"✅ Jest Passed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\\nRun: ${{ steps.jest.outputs.run_url }}\"}"
+          event_name="${{ github.event_name }}"
+          repo_name="${{ github.repository }}"
+          branch_name="${{ github.ref_name }}"
+          actor_name="${{ github.actor }}"
+          commit_sha="${{ github.sha }}"
+          suites_line="${{ steps.jest.outputs.suites_line }}"
+          tests_line="${{ steps.jest.outputs.tests_line }}"
+          time_line="${{ steps.jest.outputs.time_line }}"
+          failure_details="${{ steps.jest.outputs.failure_details }}"
+          related_summary="${{ steps.jest.outputs.related_summary }}"
+          run_url="${{ steps.jest.outputs.run_url }}"
+
+          if [ "${{ steps.jest.outputs.exit_code }}" = "0" ]; then
+            message="$SUCCESS_MESSAGE_TEMPLATE"
+          else
+            message="$FAILURE_MESSAGE_TEMPLATE"
+          fi
+
+          message="${message//\{\{event\}\}/$event_name}"
+          message="${message//\{\{repo\}\}/$repo_name}"
+          message="${message//\{\{branch\}\}/$branch_name}"
+          message="${message//\{\{actor\}\}/$actor_name}"
+          message="${message//\{\{commit\}\}/$commit_sha}"
+          message="${message//\{\{suites\}\}/$suites_line}"
+          message="${message//\{\{tests\}\}/$tests_line}"
+          message="${message//\{\{time\}\}/$time_line}"
+          message="${message//\{\{related\}\}/$related_summary}"
+
+          if [ "$INCLUDE_FAILED_TEST_NAMES" = "true" ]; then
+            message="${message//\{\{failure_details\}\}/$failure_details}"
+          else
+            message="${message//\{\{failure_details\}\}/hidden}"
+          fi
+
+          if [ "$INCLUDE_RUN_URL" = "true" ]; then
+            message="$message | Run: $run_url"
+          fi
+
+          payload=$(printf '{"text":"%s"}' "$(printf '%s' "$message" | sed 's/\\/\\\\/g; s/"/\\"/g')")
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
-            -d "$payload" || echo "Teams success notification failed to send."
-
-      - name: Send Teams report on failure
-        if: ${{ steps.jest.outputs.exit_code != '0' }}
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          TEAMS_WEBHOOK_URI: ${{ secrets.TEAMS_WEBHOOK_URI }}
-        run: |
-          webhook="$TEAMS_WEBHOOK_URL"
-          if [ -z "$webhook" ]; then
-            webhook="$TEAMS_WEBHOOK_URI"
-          fi
-
-          if [ -z "$webhook" ]; then
-            echo "Teams webhook secret is missing. Set TEAMS_WEBHOOK_URL or TEAMS_WEBHOOK_URI."
-            exit 0
-          fi
-
-          payload="{\"text\":\"❌ Jest Failed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\\nFail Details: ${{ steps.jest.outputs.failure_details }}\\nRun: ${{ steps.jest.outputs.run_url }}\"}"
-
-          curl -f -X POST "$webhook" \
-            -H "Content-Type: application/json" \
-            -d "$payload" || echo "Teams failure notification failed to send."
-
-      - name: Keep workflow green after failure report
-        if: ${{ steps.jest.outputs.exit_code != '0' }}
-        run: echo "Jest failed. Failure report already sent to Teams."
+            -d "$payload" || echo "Teams notification failed to send."
