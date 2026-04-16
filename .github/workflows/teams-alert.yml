@@ -56,14 +56,14 @@ jobs:
 
           if [ -z "$webhook" ]; then
             echo "Teams webhook secret is missing. Set TEAMS_WEBHOOK_URL or TEAMS_WEBHOOK_URI."
-            exit 1
+            exit 0
           fi
 
           payload="{\"text\":\"✅ Jest Passed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
-            -d "$payload"
+            -d "$payload" || echo "Teams success notification failed to send."
 
       - name: Send Teams report on failure
         if: ${{ steps.jest.outputs.exit_code != '0' }}
@@ -78,14 +78,14 @@ jobs:
 
           if [ -z "$webhook" ]; then
             echo "Teams webhook secret is missing. Set TEAMS_WEBHOOK_URL or TEAMS_WEBHOOK_URI."
-            exit 1
+            exit 0
           fi
 
           payload="{\"text\":\"❌ Jest Failed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
-            -d "$payload"
+            -d "$payload" || echo "Teams failure notification failed to send."
 
       - name: Keep workflow green after failure report
         if: ${{ steps.jest.outputs.exit_code != '0' }}
