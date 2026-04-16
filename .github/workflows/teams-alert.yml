@@ -2,9 +2,13 @@ name: Frontend Jest + Teams Alert
 
 on:
   push:
+  pull_request:
+    types:
+      - closed
 
 jobs:
   test-and-notify:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -59,7 +63,7 @@ jobs:
             exit 0
           fi
 
-          payload="{\"text\":\"✅ Jest Passed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+          payload="{\"text\":\"✅ Jest Passed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
@@ -81,7 +85,7 @@ jobs:
             exit 0
           fi
 
-          payload="{\"text\":\"❌ Jest Failed\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
+          payload="{\"text\":\"❌ Jest Failed\\nEvent: ${{ github.event_name }}\\nRepository: ${{ github.repository }}\\nBranch: ${{ github.ref_name }}\\nActor: ${{ github.actor }}\\nCommit: ${{ github.sha }}\\n${{ steps.jest.outputs.suites_line }}\\n${{ steps.jest.outputs.tests_line }}\\n${{ steps.jest.outputs.time_line }}\"}"
 
           curl -f -X POST "$webhook" \
             -H "Content-Type: application/json" \
