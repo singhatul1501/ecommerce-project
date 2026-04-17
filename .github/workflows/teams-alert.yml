@@ -2,11 +2,16 @@ name: Frontend Jest + Teams Alert
 
 on:
   push:
+  pull_request:
     branches:
       - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 env:
-  NOTIFY_BRANCHES: "main"
+  NOTIFY_BRANCHES: "all-push-branches-and-pr-to-main"
   INCLUDE_FAILED_TEST_NAMES: "true"
   INCLUDE_RUN_URL: "true"
   SUCCESS_MESSAGE_TEMPLATE: |
@@ -54,8 +59,13 @@ jobs:
         id: changes
         run: |
           set +e
-          base_sha="${{ github.event.before }}"
-          head_sha="${{ github.sha }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base_sha="${{ github.event.pull_request.base.sha }}"
+            head_sha="${{ github.event.pull_request.head.sha }}"
+          else
+            base_sha="${{ github.event.before }}"
+            head_sha="${{ github.sha }}"
+          fi
 
           changed_files=$(git diff --name-only "$base_sha" "$head_sha" | grep -E '^frontend/src/.*\.(js|jsx|ts|tsx)$' || true)
           one_line_files=$(printf '%s' "$changed_files" | tr '\n' ' ' | xargs)
